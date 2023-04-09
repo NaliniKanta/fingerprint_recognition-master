@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "flask",
             "env":{
-                "FLASK_APP":"finegerprint_pipline:fingerprint_recognition-master",
+                "FLASK_APP":"finegerprint_pipline:app",
                 "FLASK_ENV":"development"
             },
             "program": "${file}",
