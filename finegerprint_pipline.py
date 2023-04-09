@@ -101,7 +101,7 @@ def fingerprint_pipline(input_img):
 
 
 if __name__ == '__main__':
-     app.run(port=6000)
+     app.run()
     # open images
     # img_dir = './sample_inputs/*'
     # output_dir = './output/'
