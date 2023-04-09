@@ -8,6 +8,11 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
+            "module": "flask",
+            "env":{
+                "FLASK_APP":"finegerprint_pipline:fingerprint_recognition-master",
+                "FLASK_ENV":"development"
+            },
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
