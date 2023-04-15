@@ -44,11 +44,11 @@ def calculate_singularities(im, angles, tolerance, W, mask):
 
     # DELTA: RED, LOOP:ORAGNE, whorl:INK
     colors = {"loop" : (0, 0, 255), "delta" : (0, 128, 255), "whorl": (255, 153, 255)}
-
     my_input=[]
-    x=[]
-    y=[]
-
+    delta_x=[]
+    delta_y=[]
+    loop_x=[]
+    loop_y=[]
 
     for i in range(3, len(angles) - 2):             # Y
         for j in range(3, len(angles[i]) - 2):      # x
@@ -57,27 +57,32 @@ def calculate_singularities(im, angles, tolerance, W, mask):
             mask_flag = np.sum(mask_slice)
             if mask_flag == (W*5)**2:
                 singularity = poincare_index_at(i, j, angles, tolerance)
-
                 if singularity == "delta":
                     my_input.append(singularity)
-                    x.append(((j+0)*W, (i+0)*W,"delta"))
-                    y.append(((j+1)*W, (i+1)*W,"delta"))
+                    delta_x.append(((j+0)*W, (i+0)*W,"delta"))
+                    delta_y.append(((j+1)*W, (i+1)*W,"delta"))
                     cv.rectangle(result, ((j+0)*W, (i+0)*W), ((j+1)*W, (i+1)*W), colors[singularity], 3)
-                    # cv.circle(result, ((j+0)*W, (i+0)*W), 1,colors[singularity], 3)
+
                 elif singularity == "loop":
                     my_input.append(singularity)
-                    x.append(((j+0)*W, (i+0)*W,"loop"))
-                    y.append(((j+1)*W, (i+1)*W,"loop"))
-                    cv.rectangle(result, ((j+0)*W, (i+0)*W), ((j+1)*W, (i+1)*W), colors[singularity], 3)
-                    # cv.circle(result, ((j+0)*W, (i+0)*W), 1,colors[singularity], 3)
-
+                    loop_x.append(((j+0)*W, (i+0)*W,"loop"))
+                    loop_y.append(((j+1)*W, (i+1)*W,"loop"))
+                    cv.rectangle(result, ((j+0)*W, (i+0)*W), ((j+1)*W, (i+1)*W), colors[singularity], 3)   
     print(my_input)
-    # print(x)
-    # print(y)
+    print("-----Delta X-----")
+    print(delta_x)
+    print("-----Delta Y-----")
+    print(delta_y)
+    print("-----Loop X-----")
+    print(loop_x)
+    print("-----Loop Y-----")
+    print(loop_y)
 
-    deltaList =[t for t in x if t[2].startswith('delta')]
-    LoopList =[t for t in y if t[2].startswith('loop')]
+    deltaList =[t for t in delta_x if t[2].startswith('delta')]
+    LoopList =[t for t in loop_y if t[2].startswith('loop')]
+    print("-----Delta List-----")
     print(deltaList)
+    print("-----Loop List-----")
     print(LoopList)
     deltaCheck=[]
     ycordinates=[]
@@ -90,27 +95,47 @@ def calculate_singularities(im, angles, tolerance, W, mask):
         else:
             deltaCheck.append(False)
 
-        for ycord in delta:
-            ycordinates.append(ycord)
-
-        minYcord= min(ycordinates)
-        maxYCord = max(ycordinates)
+        for xcord in delta:
+            xcordinates.append(xcord)
+    
 
     for loop in LoopList:
         last_element_index = len(loop)-1
         loop = loop[:last_element_index]
-        for xcord in loop:
-            xcordinates.append(xcord)
+        for ycord in loop:
+            ycordinates.append(ycord)
 
-    maxXcord= max(xcordinates)
-    minXcord= min(xcordinates)
+    minYcord=0 if len(ycordinates)==0 else min(ycordinates)
+    maxYCord =0 if len(ycordinates)==0 else max(ycordinates)
+    maxXcord=0 if len(xcordinates)==0 else max(xcordinates)
+    minXcord=0 if len(xcordinates)==0 else min(xcordinates)
    
-    print(deltaCheck)
-    print(maxXcord)
-    print(minYcord)
 
+
+    print(xcordinates)
+    print(ycordinates)
+
+    #if delta nd loop both are very close to each other it should behaves like 0 ridge count
+    delta_x_len = len(delta_x)
+    delta_y_len = len(delta_y)
+    loop_x_len = len(loop_x)
+    loop_y_len = len(loop_y)
+    
+
+    #zero ridge count conditions
     if(len(LoopList) == 0 or len(deltaList)==0):
         ridgeCount=0
+    elif(len(LoopList) <= 3 and len(deltaList)<=3) :
+        ridgeCount=0 
+    # elif(delta_x_len >0  and delta_y_len >0 and loop_x_len >0 and loop_y_len >0):
+    #     print(delta_x[delta_x_len-1][0])
+    #     print(loop_x[loop_x_len-1][0])
+    #     print(delta_y[delta_y_len-1][0])
+    #     print(delta_x[delta_x_len-1][0])
+
+    #     if ((delta_x[delta_x_len-1][0] - loop_x[loop_x_len-1][0])/16 <=2 and 
+    #         (delta_y[delta_y_len-1][0] - loop_y[loop_y_len-1][0])/16 <=3):
+    #      ridgeCount=0      
     elif (False not in deltaCheck):
      ridgeCount= (maxXcord- minYcord)/16 
     elif (maxYCord > maxXcord):
@@ -122,8 +147,12 @@ def calculate_singularities(im, angles, tolerance, W, mask):
     else:    
         ridgeCount= (LoopList[len(LoopList) -1][1] - deltaList[len(deltaList) -1][0])/16
 
-    print(ridgeCount)
-    return (result, ridgeCount)
+    if ridgeCount == 1:
+        ridgeCount=0
+
+    print('ridgecount: '+ str(ridgeCount));   
+    #return (result, ridgeCount)
+    return result
 
 
 if __name__ == '__main__':

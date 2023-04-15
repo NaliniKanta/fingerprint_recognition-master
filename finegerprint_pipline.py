@@ -1,7 +1,6 @@
 import cv2 as cv
 from glob import glob
 import os
-from flask import Flask, render_template, request
 import numpy as np
 from utils.poincare import calculate_singularities
 from utils.segmentation import create_segmented_and_variance_images
@@ -12,47 +11,7 @@ from utils import orientation
 from utils.crossing_number import calculate_minutiaes
 from tqdm import tqdm
 from utils.skeletonize import skeletonize
-app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "sample_inputs/"
 
-
-
-@app.route('/')
-def index():
-     for f in os.listdir(app.config["UPLOAD_FOLDER"]):
-            print(f)
-            os.remove(app.config["UPLOAD_FOLDER"]+ f)
-     return render_template("index.html")
-
-@app.route('/success', methods = ['POST'])  
-def success():  
-    if request.method == 'POST':  
-       
-        f = request.files['file']
-        f.save(app.config['UPLOAD_FOLDER'] + f.filename)  
-        return render_template("process.html", message="File uploaded successfully")  
-    
-@app.route('/process', methods = ['POST'])  
-def process():  
-         # open images
-    img_dir = './sample_inputs/*'
-    output_dir = './output/'
-    ridgeCount=0
-    def open_images(directory):
-        images_paths = glob(directory)
-        print(images_paths)
-        return np.array([cv.imread(img_path,0) for img_path in images_paths])
-
-    images = open_images(img_dir)
-
-    # image pipeline
-    os.makedirs(output_dir, exist_ok=True)
-    for i, img in enumerate(tqdm(images)):
-        (results,ridgeCount) = fingerprint_pipline(img)
-        cv.imwrite(output_dir+str(i)+'.png', results)
-
-    return render_template("process.html", ridgeCount="ridge count :"+str(int(ridgeCount)))
-        # cv.imshow('image pipeline', results); cv.waitKeyEx() 
 
 def fingerprint_pipline(input_img):
     block_size = 16
@@ -88,7 +47,7 @@ def fingerprint_pipline(input_img):
     minutias = calculate_minutiaes(thin_image)
 
     # singularities
-    (singularities_img, ridgeCount) = calculate_singularities(input_img, angles, 1, block_size, mask)
+    singularities_img = calculate_singularities(thin_image, angles, 1, block_size, mask)
 
     # visualize pipeline stage by stage
     output_imgs = [input_img, normalized_img, segmented_img, orientation_img, gabor_img, thin_image, minutias, singularities_img]
@@ -97,24 +56,22 @@ def fingerprint_pipline(input_img):
             output_imgs[i] = cv.cvtColor(output_imgs[i], cv.COLOR_GRAY2RGB)
     results = np.concatenate([np.concatenate(output_imgs[:4], 1), np.concatenate(output_imgs[4:], 1)]).astype(np.uint8)
 
-    return (results, ridgeCount)
+    return results
 
 
 if __name__ == '__main__':
-     app.run()
     # open images
-    # img_dir = './sample_inputs/*'
-    # output_dir = './output/'
-    # def open_images(directory):
-    #     images_paths = glob(directory)
-    #     print(images_paths)
-    #     return np.array([cv.imread(img_path,0) for img_path in images_paths])
+    img_dir = './sample_inputs/*'
+    output_dir = './output/'
+    def open_images(directory):
+        images_paths = glob(directory)
+        return np.array([cv.imread(img_path,0) for img_path in images_paths])
 
-    # images = open_images(img_dir)
+    images = open_images(img_dir)
 
-    # # image pipeline
-    # os.makedirs(output_dir, exist_ok=True)
-    # for i, img in enumerate(tqdm(images)):
-    #     results = fingerprint_pipline(img)
-    #     cv.imwrite(output_dir+str(i)+'.png', results)
-    #     # cv.imshow('image pipeline', results); cv.waitKeyEx()
+    # image pipeline
+    os.makedirs(output_dir, exist_ok=True)
+    for i, img in enumerate(tqdm(images)):
+        results = fingerprint_pipline(img)
+        cv.imwrite(output_dir+str(i)+'.png', results)
+        # cv.imshow('image pipeline', results); cv.waitKeyEx()
